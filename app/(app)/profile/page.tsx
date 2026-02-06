@@ -33,7 +33,7 @@ export default function ProfilePage() {
     ]
 
     return (
-        <div>
+        <div className="pb-8">
             {/* Profile Header */}
             <div className="bg-white rounded-2xl border border-gray-100 p-6 text-center mb-6">
                 <div className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center text-white text-2xl font-bold mx-auto mb-4 shadow-lg shadow-emerald-500/25">

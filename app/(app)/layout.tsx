@@ -29,17 +29,13 @@ export default function AppLayout({
 }) {
     return (
         <ProtectedRoute>
-            <div className="flex flex-col min-h-screen min-h-[100dvh] bg-gray-50 overflow-hidden">
+            <div className="min-h-screen min-h-[100dvh] bg-gray-50">
                 {/* Fixed Header */}
                 <AppHeader />
 
                 {/* Scrollable Main Content */}
                 <main
-                    className="flex-1 overflow-y-auto overscroll-none pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(5rem+env(safe-area-inset-bottom))]"
-                    style={{
-                        WebkitOverflowScrolling: 'touch',
-                        touchAction: 'pan-y',
-                    }}
+                    className="min-h-screen pt-[calc(3.5rem+env(safe-area-inset-top))] pb-[calc(5rem+env(safe-area-inset-bottom))]"
                 >
                     <div className="max-w-lg mx-auto px-4 py-4">
                         {children}
