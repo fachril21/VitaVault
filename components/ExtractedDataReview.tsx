@@ -24,6 +24,42 @@ type ExtractedDataReviewProps = {
     onCancel: () => void
 }
 
+/**
+ * Checks if a test result value is outside the reference range
+ * Handles various formats: "13.0-17.0", "5,000-10,000", "<5", ">100"
+ */
+function isValueAbnormal(result: string | null, referenceRange: string | null): boolean {
+    if (!result || !referenceRange) return false
+
+    // Parse numeric value from result (remove commas, extract number)
+    const numericResult = parseFloat(result.replace(/,/g, ''))
+    if (isNaN(numericResult)) return false
+
+    // Parse reference range
+    // Handle comparative operators (<, >)
+    if (referenceRange.includes('<')) {
+        const max = parseFloat(referenceRange.replace(/[<\s,]/g, ''))
+        return !isNaN(max) && numericResult >= max
+    }
+
+    if (referenceRange.includes('>')) {
+        const min = parseFloat(referenceRange.replace(/[>\s,]/g, ''))
+        return !isNaN(min) && numericResult <= min
+    }
+
+    // Handle range format "min-max" or "min - max"
+    const rangeParts = referenceRange.split('-').map(p =>
+        parseFloat(p.replace(/[,\s]/g, ''))
+    )
+
+    if (rangeParts.length === 2 && !isNaN(rangeParts[0]) && !isNaN(rangeParts[1])) {
+        const [min, max] = rangeParts
+        return numericResult < min || numericResult > max
+    }
+
+    return false
+}
+
 export function ExtractedDataReview({
     data,
     filePreview,
@@ -268,21 +304,37 @@ export function ExtractedDataReview({
                     {expandedSections.tests && (
                         <div className="px-4 pb-4">
                             <div className="space-y-2">
-                                {editedData.tests.map((test, i) => (
-                                    <div key={i} className="flex items-center justify-between p-3 bg-blue-50 rounded-xl">
-                                        <div>
-                                            <p className="font-medium text-sm text-gray-900">{test.name}</p>
-                                            {test.reference_range && (
-                                                <p className="text-xs text-gray-500">Ref: {test.reference_range}</p>
-                                            )}
+                                {editedData.tests.map((test, i) => {
+                                    const isAbnormal = isValueAbnormal(test.result, test.reference_range)
+
+                                    return (
+                                        <div
+                                            key={i}
+                                            className={`flex items-center justify-between p-3 rounded-xl border-2 transition-colors ${isAbnormal
+                                                    ? 'bg-red-50 border-red-200'
+                                                    : 'bg-blue-50 border-transparent'
+                                                }`}
+                                        >
+                                            <div>
+                                                <p className="font-medium text-sm text-gray-900">{test.name}</p>
+                                                {test.reference_range && (
+                                                    <p className="text-xs text-gray-500">Ref: {test.reference_range}</p>
+                                                )}
+                                            </div>
+                                            <div className="text-right">
+                                                <p className={`font-semibold text-sm ${isAbnormal ? 'text-red-600' : 'text-blue-700'
+                                                    }`}>
+                                                    {test.result} {test.unit}
+                                                </p>
+                                                {isAbnormal && (
+                                                    <p className="text-xs text-red-600 font-medium mt-0.5">
+                                                        ⚠ Abnormal
+                                                    </p>
+                                                )}
+                                            </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-semibold text-sm text-blue-700">
-                                                {test.result} {test.unit}
-                                            </p>
-                                        </div>
-                                    </div>
-                                ))}
+                                    )
+                                })}
                             </div>
                         </div>
                     )}
