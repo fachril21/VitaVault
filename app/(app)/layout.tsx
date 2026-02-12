@@ -1,6 +1,7 @@
 import { ProtectedRoute } from '@/components/ProtectedRoute'
 import { AppHeader } from '@/components/app/AppHeader'
 import { BottomNavigation } from '@/components/app/BottomNavigation'
+import { Toaster } from 'sonner'
 import type { Metadata, Viewport } from 'next'
 
 export const viewport: Viewport = {
@@ -44,6 +45,9 @@ export default function AppLayout({
 
                 {/* Fixed Bottom Navigation */}
                 <BottomNavigation />
+
+                {/* Toast Notifications */}
+                <Toaster position="top-center" richColors />
             </div>
         </ProtectedRoute>
     )

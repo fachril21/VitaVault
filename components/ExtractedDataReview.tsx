@@ -25,36 +25,59 @@ type ExtractedDataReviewProps = {
 }
 
 /**
+ * Normalizes a numeric string by handling both comma-as-decimal (e.g. "6,5" → 6.5)
+ * and comma-as-thousands (e.g. "5,000" → 5000) separators.
+ * Rule: if a comma is followed by exactly 1 or 2 digits (not 3), it's a decimal separator.
+ */
+function parseLocalizedNumber(value: string): number {
+    const cleaned = value.replace(/[^\d.,-]/g, '').trim()
+
+    // Check if comma is used as decimal separator:
+    // Pattern: digits, comma, then 1-2 digits at the end (e.g. "6,5" or "6,50")
+    if (/,\d{1,2}$/.test(cleaned) && !/,\d{3}/.test(cleaned)) {
+        // Replace comma with dot for decimal, remove any dot thousands separators
+        return parseFloat(cleaned.replace(/\./g, '').replace(',', '.'))
+    }
+
+    // Otherwise treat commas as thousands separators
+    return parseFloat(cleaned.replace(/,/g, ''))
+}
+
+/**
  * Checks if a test result value is outside the reference range
  * Handles various formats: "13.0-17.0", "5,000-10,000", "<5", ">100"
+ * Also handles comma-as-decimal: "6,5" meaning 6.5 (Indonesian/European format)
  */
 function isValueAbnormal(result: string | null, referenceRange: string | null): boolean {
     if (!result || !referenceRange) return false
 
-    // Parse numeric value from result (remove commas, extract number)
-    const numericResult = parseFloat(result.replace(/,/g, ''))
+    // Parse numeric value from result
+    const numericResult = parseLocalizedNumber(result)
     if (isNaN(numericResult)) return false
 
     // Parse reference range
     // Handle comparative operators (<, >)
     if (referenceRange.includes('<')) {
-        const max = parseFloat(referenceRange.replace(/[<\s,]/g, ''))
+        const max = parseLocalizedNumber(referenceRange.replace(/[<≤\s]/g, ''))
         return !isNaN(max) && numericResult >= max
     }
 
     if (referenceRange.includes('>')) {
-        const min = parseFloat(referenceRange.replace(/[>\s,]/g, ''))
+        const min = parseLocalizedNumber(referenceRange.replace(/[>≥\s]/g, ''))
         return !isNaN(min) && numericResult <= min
     }
 
     // Handle range format "min-max" or "min - max"
-    const rangeParts = referenceRange.split('-').map(p =>
-        parseFloat(p.replace(/[,\s]/g, ''))
-    )
+    // Be careful: negative numbers and decimals can also contain hyphens
+    // Use a regex to split on hyphen that acts as a separator (between two numbers)
+    const rangeMatch = referenceRange.match(/^\s*([\d.,]+)\s*[-–]\s*([\d.,]+)\s*$/)
 
-    if (rangeParts.length === 2 && !isNaN(rangeParts[0]) && !isNaN(rangeParts[1])) {
-        const [min, max] = rangeParts
-        return numericResult < min || numericResult > max
+    if (rangeMatch) {
+        const min = parseLocalizedNumber(rangeMatch[1])
+        const max = parseLocalizedNumber(rangeMatch[2])
+        if (!isNaN(min) && !isNaN(max)) {
+            return numericResult < min || numericResult > max
+        }
     }
 
     return false
@@ -311,8 +334,8 @@ export function ExtractedDataReview({
                                         <div
                                             key={i}
                                             className={`flex items-center justify-between p-3 rounded-xl border-2 transition-colors ${isAbnormal
-                                                    ? 'bg-red-50 border-red-200'
-                                                    : 'bg-blue-50 border-transparent'
+                                                ? 'bg-red-50 border-red-200'
+                                                : 'bg-blue-50 border-transparent'
                                                 }`}
                                         >
                                             <div>
@@ -413,16 +436,11 @@ export function ExtractedDataReview({
                     className="flex-1 inline-flex items-center justify-center gap-2 bg-emerald-600 text-white px-6 py-3 rounded-xl font-medium hover:bg-emerald-700 active:scale-[0.98] transition-all"
                 >
                     <CheckCircle2 className="h-5 w-5" />
-                    Confirm & Encrypt
+                    Encrypt & Save to IPFS
                 </button>
             </div>
 
-            {/* Phase Notice */}
-            <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
-                <p className="text-xs text-amber-800">
-                    <strong>Phase 2 Preview:</strong> Encryption and IPFS storage will be implemented in Phase 3.
-                </p>
-            </div>
+
         </div>
     )
 }

@@ -1,15 +1,47 @@
 'use client'
 
-import { usePrivy } from '@privy-io/react-auth'
-import { User, Wallet, Shield, Bell, LogOut, ChevronRight, Settings } from 'lucide-react'
+import { useState } from 'react'
+import { usePrivy, useCreateWallet } from '@privy-io/react-auth'
+import { User, Wallet, Shield, Bell, LogOut, ChevronRight, ExternalLink, Loader2, Unplug } from 'lucide-react'
 import Link from 'next/link'
+import { toast } from 'sonner'
 
 export default function ProfilePage() {
-    const { user, logout, exportWallet } = usePrivy()
+    const { user, logout, exportWallet, linkWallet, unlinkWallet } = usePrivy()
+    const { createWallet } = useCreateWallet()
+    const [creatingWallet, setCreatingWallet] = useState(false)
+    const [disconnecting, setDisconnecting] = useState(false)
 
     const email = user?.email?.address || user?.google?.email || ''
     const walletAddress = user?.wallet?.address
     const initials = email ? email.charAt(0).toUpperCase() : 'U'
+
+    const handleCreateWallet = async () => {
+        setCreatingWallet(true)
+        try {
+            await createWallet()
+            toast.success('Wallet created successfully!')
+        } catch (err) {
+            console.error('Failed to create wallet:', err)
+            toast.error('Failed to create wallet')
+        } finally {
+            setCreatingWallet(false)
+        }
+    }
+
+    const handleDisconnectWallet = async () => {
+        if (!walletAddress) return
+        setDisconnecting(true)
+        try {
+            await unlinkWallet(walletAddress)
+            toast.success('Wallet disconnected')
+        } catch (err) {
+            console.error('Failed to disconnect wallet:', err)
+            toast.error('Failed to disconnect wallet')
+        } finally {
+            setDisconnecting(false)
+        }
+    }
 
     const menuItems = [
         {
@@ -51,23 +83,61 @@ export default function ProfilePage() {
                     </div>
                     <div className="flex-1">
                         <h3 className="font-medium text-gray-900 text-sm">Embedded Wallet</h3>
-                        <p className="text-xs text-gray-500">Used for encryption</p>
+                        <p className="text-xs text-gray-500">
+                            {walletAddress ? 'Connected · Used for encryption' : 'Not connected'}
+                        </p>
                     </div>
                 </div>
-                {walletAddress && (
+                {walletAddress ? (
                     <>
                         <div className="bg-gray-50 rounded-lg p-2.5 mb-3">
                             <p className="text-xs text-gray-600 font-mono break-all">
                                 {walletAddress}
                             </p>
                         </div>
-                        <button
-                            onClick={() => exportWallet()}
-                            className="text-xs text-emerald-600 font-medium hover:underline"
-                        >
-                            Export Wallet →
-                        </button>
+                        <div className="flex gap-2">
+                            <button
+                                onClick={() => exportWallet()}
+                                className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs text-emerald-600 font-medium py-2 rounded-lg bg-emerald-50 hover:bg-emerald-100 transition-colors"
+                            >
+                                <ExternalLink className="h-3 w-3" />
+                                Export
+                            </button>
+                            <button
+                                onClick={handleDisconnectWallet}
+                                disabled={disconnecting}
+                                className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs text-red-600 font-medium py-2 rounded-lg bg-red-50 hover:bg-red-100 transition-colors disabled:opacity-50"
+                            >
+                                {disconnecting ? (
+                                    <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                    <Unplug className="h-3 w-3" />
+                                )}
+                                Disconnect
+                            </button>
+                        </div>
                     </>
+                ) : (
+                    <div className="flex gap-2">
+                        <button
+                            onClick={handleCreateWallet}
+                            disabled={creatingWallet}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs text-blue-600 font-medium py-2 rounded-lg bg-blue-50 hover:bg-blue-100 transition-colors disabled:opacity-50"
+                        >
+                            {creatingWallet ? (
+                                <><Loader2 className="h-3 w-3 animate-spin" /> Creating...</>
+                            ) : (
+                                <><Wallet className="h-3 w-3" /> Create Wallet</>
+                            )}
+                        </button>
+                        <button
+                            onClick={() => linkWallet()}
+                            className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs text-purple-600 font-medium py-2 rounded-lg bg-purple-50 hover:bg-purple-100 transition-colors"
+                        >
+                            <ExternalLink className="h-3 w-3" />
+                            Link Existing
+                        </button>
+                    </div>
                 )}
             </div>
 

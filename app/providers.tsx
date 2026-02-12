@@ -11,11 +11,16 @@ export function Providers({ children }: ProvidersProps) {
         <PrivyProvider
             appId={process.env.NEXT_PUBLIC_PRIVY_APP_ID!}
             config={{
-                loginMethods: ['google', 'email'],
+                loginMethods: ['google', 'email', 'wallet'],
                 appearance: {
                     theme: 'light',
                     accentColor: '#10b981',
                     logo: '/logo.png',
+                },
+                embeddedWallets: {
+                    ethereum: {
+                        createOnLogin: 'users-without-wallets',
+                    },
                 },
             }}
         >
